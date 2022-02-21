@@ -14,8 +14,6 @@ const (
 	FailedCreated       = "FailedCreated"
 	SuccessfullyDeleted = "SuccessfullyDeleted"
 	FailedDeleted       = "FailedDeleted"
-
-	GPUPoolNamespace = "gpu-pool"
 )
 
 type MountType string

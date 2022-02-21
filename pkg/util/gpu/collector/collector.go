@@ -155,7 +155,7 @@ func (gpuCollector *GPUCollector) GetPodGPUResources(podName string, namespace s
 	var gpuResources []*device.NvidiaGPU
 	for _, gpuDev := range gpuCollector.GPUList {
 		if (gpuDev.PodName == podName && gpuDev.Namespace == namespace) ||
-			(strings.Contains(gpuDev.PodName, podName+"-slave-pod-") && gpuDev.Namespace == gpu.GPUPoolNamespace) {
+			(strings.Contains(gpuDev.PodName, podName+"-slave-pod-") && gpuDev.Namespace == os.Getenv("GPU_POOL_NAMESPACE")) {
 			gpuResources = append(gpuResources, gpuDev)
 		}
 	}

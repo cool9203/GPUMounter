@@ -9,6 +9,7 @@ import (
 	. "GPUMounter/pkg/util/log"
 	"context"
 	"errors"
+	"os"
 
 	k8s_error "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,7 +85,7 @@ func (gpuMountImpl GPUMountImpl) AddGPU(_ context.Context, request *gpu_mount.Ad
 			Logger.Error("Mount GPU: " + targetGPU.String() + " to Pod: " + request.PodName + " in Namespace: " + request.Namespace + " failed")
 			Logger.Error(err)
 			for _, freeGPU := range gpuResources {
-				err = clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Delete(context.TODO(), freeGPU.PodName, *metav1.NewDeleteOptions(0))
+				err = clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Delete(context.TODO(), freeGPU.PodName, *metav1.NewDeleteOptions(0))
 				if err != nil {
 					Logger.Error("Failed to release GPU: ", freeGPU.String())
 				}

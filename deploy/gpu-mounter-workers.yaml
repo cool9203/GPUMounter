@@ -30,6 +30,8 @@ spec:
             - name: CGROUP_DRIVER
               value: "cgroupfs"
               # value: "systemd"
+            - name: GPU_POOL_NAMESPACE
+              value: "default"
           volumeMounts:
             - name: cgroup
               mountPath: /sys/fs/cgroup

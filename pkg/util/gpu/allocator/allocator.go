@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -64,19 +65,19 @@ func (gpuAllocator *GPUAllocator) GetAvailableGPU(ownerPod *corev1.Pod, totalGpu
 	switch <-ch {
 	case gpu.InsufficientGPU:
 		for _, slavePodName := range slavePodNames {
-			err = clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Delete(context.TODO(), slavePodName, *metav1.NewDeleteOptions(0))
+			err = clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Delete(context.TODO(), slavePodName, *metav1.NewDeleteOptions(0))
 			if err != nil {
 				Logger.Error(err)
-				Logger.Error("Failed to recycle slave pod: ", slavePodName, " Namespace: ", gpu.GPUPoolNamespace)
+				Logger.Error("Failed to recycle slave pod: ", slavePodName, " Namespace: ", os.Getenv("GPU_POOL_NAMESPACE"))
 			}
 		}
 		return nil, errors.New(gpu.InsufficientGPU)
 	case gpu.FailedCreated:
 		for _, slavePodName := range slavePodNames {
-			err = clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Delete(context.TODO(), slavePodName, *metav1.NewDeleteOptions(0))
+			err = clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Delete(context.TODO(), slavePodName, *metav1.NewDeleteOptions(0))
 			if err != nil {
 				Logger.Error(err)
-				Logger.Error("Failed to recycle slave pod: ", slavePodName, " Namespace: ", gpu.GPUPoolNamespace)
+				Logger.Error("Failed to recycle slave pod: ", slavePodName, " Namespace: ", os.Getenv("GPU_POOL_NAMESPACE"))
 			}
 		}
 		return nil, errors.New(gpu.FailedCreated)
@@ -84,10 +85,10 @@ func (gpuAllocator *GPUAllocator) GetAvailableGPU(ownerPod *corev1.Pod, totalGpu
 		Logger.Infof("Successfully create Slave Pod: %s, for Owner Pod: %s ", strings.Join(slavePodNames, ", "), ownerPod.Name)
 		var availableGPUResource []*device.NvidiaGPU
 		for _, slavePodName := range slavePodNames {
-			gpuResources, err := gpuAllocator.GetPodGPUResources(slavePodName, gpu.GPUPoolNamespace)
+			gpuResources, err := gpuAllocator.GetPodGPUResources(slavePodName, os.Getenv("GPU_POOL_NAMESPACE"))
 			if err != nil {
 				Logger.Error(err)
-				Logger.Error("Failed to get gpu resource for Slave Pod: ", slavePodName, " in Namespace: ", gpu.GPUPoolNamespace)
+				Logger.Error("Failed to get gpu resource for Slave Pod: ", slavePodName, " in Namespace: ", os.Getenv("GPU_POOL_NAMESPACE"))
 				return nil, errors.New(gpu.FailedCreated)
 			}
 			availableGPUResource = append(availableGPUResource, gpuResources...)
@@ -133,7 +134,7 @@ func (gpuAllocator *GPUAllocator) DeleteSlavePods(slavePodNames []string) error 
 		return err
 	}
 	for _, slavePodName := range slavePodNames {
-		err = clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Delete(context.TODO(), slavePodName, metav1.DeleteOptions{})
+		err = clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Delete(context.TODO(), slavePodName, metav1.DeleteOptions{})
 		if err != nil {
 			Logger.Error("Failed to delete Slave Pod: ", slavePodName)
 			return err
@@ -195,7 +196,7 @@ func newGPUSlavePod(ownerPod *corev1.Pod, gpuNum int) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ownerPod.Name + "-slave-pod-" + randID,
-			Namespace: gpu.GPUPoolNamespace,
+			Namespace: os.Getenv("GPU_POOL_NAMESPACE"),
 			Labels: map[string]string{
 				"app": "gpu-pool",
 			},
@@ -246,7 +247,7 @@ func checkCreateState(podNames []string, ch chan string) {
 	for {
 		flag := true
 		for _, slavePodName := range podNames {
-			pod, err := clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Get(context.TODO(), slavePodName, metav1.GetOptions{})
+			pod, err := clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Get(context.TODO(), slavePodName, metav1.GetOptions{})
 			if err != nil {
 				if k8s_errors.IsNotFound(err) {
 					Logger.Info("Not Found....")
@@ -295,7 +296,7 @@ func checkDeleteState(podNames []string, ch chan string) {
 	for {
 		flag := true
 		for _, slavePodName := range podNames {
-			_, err := clientset.CoreV1().Pods(gpu.GPUPoolNamespace).Get(context.TODO(), slavePodName, metav1.GetOptions{})
+			_, err := clientset.CoreV1().Pods(os.Getenv("GPU_POOL_NAMESPACE")).Get(context.TODO(), slavePodName, metav1.GetOptions{})
 			if err != nil {
 				if k8s_errors.IsNotFound(err) {
 					// this slavePod has been deleted
